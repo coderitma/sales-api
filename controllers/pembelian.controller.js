@@ -65,11 +65,11 @@ router.post("/", [authentication], async (req, res) => {
     let validasiTotal = 0;
     let validasiJumlah = true;
     let indexBarang = 0;
-    for (barang of daftarBarang) {
-      validasiTotal += barang.hargaJual * barang.jumlahBarang;
+    for (barang of item) {
+      validasiTotal += barang.hargaBeli * barang.jumlahBarang;
       if (
-        item[indexBarang].kodeBarang === barang.kodeBarang &&
-        item[indexBarang].jumlahBarang >= barang.jumlahBarang
+        daftarBarang[indexBarang].kodeBarang === barang.kodeBarang &&
+        daftarBarang[indexBarang].jumlahBarang < barang.jumlahBarang
       ) {
         validasiJumlah = false;
       }
@@ -97,6 +97,15 @@ router.post("/", [authentication], async (req, res) => {
       ...pembelian,
       pemasok: { ...pemasok },
     }).save();
+
+    // update stock
+    for (let b of item) {
+      await BarangModel.findOneAndUpdate(
+        { kodeBarang: b.kodeBarang },
+        { $inc: { jumlahBarang: -parseInt(b.jumlahBarang) } }
+      );
+    }
+    console.log(item);
 
     return res.status(201).json({
       item: [...item],
