@@ -1,5 +1,5 @@
 const configDB = {
-  // useNewUrlParser: false,
+  useNewUrlParser: true,
   // useUnifiedTopology: true,
   // useCreateIndex: true,
   // useFindAndModify: false,
