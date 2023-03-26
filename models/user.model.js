@@ -1,11 +1,26 @@
-const mongoose = require("mongoose");
+var bcrypt = require("bcryptjs");
+const { knex } = require("../config/dbsql");
 
-const userSchema = new mongoose.Schema({
-  firstName: { type: String, default: null },
-  lastName: { type: String, default: null },
-  email: { type: String, unique: true },
-  password: { type: String },
-  token: { type: String },
-});
+const TABLE = "user";
+const ModelUser = {};
 
-module.exports = mongoose.model("user", userSchema);
+ModelUser.userExist = async (email) => {
+  let user = await knex(TABLE).where("email", email);
+  if (user) {
+    return user[0];
+  }
+};
+
+ModelUser.create = async (firstName, lastName, email, password) => {
+  const passwordHash = await bcrypt.hash(password, 10);
+  await knex(TABLE).insert({
+    firstName,
+    lastName,
+    email,
+    password: passwordHash,
+  });
+
+  return { firstName, lastName, email };
+};
+
+module.exports = ModelUser;
