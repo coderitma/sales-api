@@ -2,128 +2,65 @@ const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const PembelianModel = require("../models/pembelian.model");
-const PemasokModel = require("../models/pemasok.model");
-const BarangModel = require("../models/barang.model");
+const { knex } = require("../config/dbsql");
+const ModelPembelian = require("../models/pembelian.model");
 
 router.post("/", [authentication], async (req, res) => {
   try {
-    const { pemasok, item, ...pembelian } = req.body;
+    await knex.transaction(async (trx) => {
+      const { pemasok, item, ...pembelian } = req.body;
 
-    // validasi faktur
-    if (!pembelian.faktur) {
-      return res.status(400).json({
-        message: "Faktur tidak boleh kosong",
-      });
-    }
-
-    // validasi unik nomor faktur (ketersediaan pembelian)
-    const oldPembelian = await PembelianModel.findOne({
-      faktur: pembelian.faktur,
-    });
-
-    if (oldPembelian) {
-      return res.status(400).json({
-        message: "Faktur sudah ada sebelumnya",
-      });
-    }
-
-    // validasi pemasok
-    if (!pemasok) {
-      return res.status(400).json({
-        message: "Pemasok tidak boleh kosong",
-      });
-    }
-
-    // validasi ada atau tidaknya pemasok di db
-    const pemasokTersedia = await PemasokModel.findOne({
-      kodePemasok: pemasok.kodePemasok,
-    });
-
-    if (!pemasokTersedia) {
-      return res.status(404).json({
-        message: "Pemasok tidak terdaftar",
-      });
-    }
-
-    // validasi item
-    if (!item || item.length <= 0) {
-      return res.status(400).json({
-        message: "Item tidak boleh kosong",
-      });
-    }
-
-    const daftarBarang = await BarangModel.find()
-      .where("kodeBarang")
-      .in(item.map((i) => i.kodeBarang));
-
-    if (!daftarBarang || daftarBarang.length !== item.length) {
-      return res.status(400).json({
-        message: `Daftar barang ada yang tidak tersedia`,
-      });
-    }
-
-    let validasiTotal = 0;
-    let validasiJumlah = true;
-    let indexBarang = 0;
-    for (barang of item) {
-      validasiTotal += barang.hargaBeli * barang.jumlahBarang;
-      if (
-        daftarBarang[indexBarang].kodeBarang === barang.kodeBarang &&
-        daftarBarang[indexBarang].jumlahBarang < barang.jumlahBarang
-      ) {
-        validasiJumlah = false;
+      // menghitung harga total dari quantity
+      // menyiapkan data item
+      let total = 0;
+      let dataInsertItemBeli = [];
+      for (let i = 0; i < item.length; i++) {
+        total += item[i].hargaBeli * item[i].jumlahBeli;
+        let temp = {
+          faktur: pembelian.faktur,
+          kodeBarang: item[i].kodeBarang,
+          namaBarang: item[i].namaBarang,
+          hargaBeli: item[i].hargaBeli,
+          hargaJual: item[i].hargaJual,
+          jumlahBeli: item[i].jumlahBeli,
+          subtotal: item[i].hargaBeli * item[i].jumlahBeli,
+        };
+        dataInsertItemBeli.push(temp);
       }
 
-      indexBarang++;
-    }
-
-    if (validasiTotal !== pembelian.total) {
-      return res.status(400).json({
-        message: `Total pembelian tidak valid`,
+      // menyimpan pembelian
+      await knex("pembelian").transacting(trx).insert({
+        faktur: pembelian.faktur,
+        tanggal: pembelian.tanggal,
+        total: total,
+        kodePemasok: pemasok.kodePemasok,
       });
-    }
 
-    if (!validasiJumlah) {
-      return res.status(400).json({
-        message: `Jumlah pesanan ada yang melebihi batas`,
-      });
-    }
+      await knex("item_beli")
+        .transacting(trx)
+        .insert([...dataInsertItemBeli]);
 
-    let d = new Date(pembelian.tanggal);
-    pembelian.tanggal = d.toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
-
-    await PembelianModel({
-      item: [...item],
-      ...pembelian,
-      pemasok: { ...pemasok },
-    }).save();
-
-    // update stock
-    for (let b of item) {
-      await BarangModel.findOneAndUpdate(
-        { kodeBarang: b.kodeBarang },
-        { $inc: { jumlahBarang: -parseInt(b.jumlahBarang) } }
-      );
-    }
-    console.log(item);
-
-    return res.status(201).json({
-      item: [...item],
-      ...pembelian,
-      pemasok: { ...pemasok },
+      // update stock
+      for (let i = 0; i < item.length; i++) {
+        let data = await knex("barang")
+          .where("kodeBarang", item[i].kodeBarang)
+          .select();
+        await knex("barang")
+          .transacting(trx)
+          .where("kodeBarang", item[i].kodeBarang)
+          .update("jumlahBarang", data[0].jumlahBarang - item[i].jumlahBeli);
+      }
     });
+
+    return res.status(201).json(req.body);
   } catch (error) {
-    console.error(error);
+    return res.status(400).json(error);
   }
 });
 
 router.get("/", [authentication], async (req, res) => {
   try {
-    const querySearch = req.query ? req.query : {};
-    const daftarPembelian = await PembelianModel.find(querySearch).select({
-      _id: 0,
-      __v: 0,
-    });
+    let daftarPembelian = await ModelPembelian.list();
     return res.status(200).json(daftarPembelian);
   } catch (error) {
     console.error(error);

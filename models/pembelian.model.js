@@ -1,26 +1,55 @@
-const mongoose = require("mongoose");
+const { knex } = require("../config/dbsql");
 
-const pembelianSchema = new mongoose.Schema({
-  faktur: { type: String, unique: true },
-  tanggal: { type: Date, timestamps: true },
-  total: { type: Number, default: 0 },
-  dibayar: { type: Number, default: 0 },
-  kembali: { type: Number, default: 0 },
-  pemasok: {
-    kodePemasok: String,
-    namaPemasok: String,
-    alamatPemasok: String,
-    teleponPemasok: String,
-  },
-  item: [
-    {
-      kodeBarang: String,
-      namaBarang: String,
-      hargaBeli: Number,
-      hargaJual: Number,
-      jumlahBarang: Number,
-    },
-  ],
-});
+const list = async () => {
+  try {
+    let daftarPembelian = await knex("pembelian").select();
+    let payload = [];
+    for (let pembelian of daftarPembelian) {
+      let data = {
+        faktur: pembelian.faktur,
+        tanggal: pembelian.tanggal,
+        total: pembelian.total,
+        pemasok: {},
+        item: [],
+      };
 
-module.exports = mongoose.model("pembelian", pembelianSchema);
+      let pemasok = (
+        await knex("pemasok")
+          .where("kodePemasok", pembelian.kodePemasok)
+          .select()
+      )[0];
+
+      data.pemasok = {
+        kodePemasok: pemasok.kodePemasok,
+        namaPemasok: pemasok.namaPemasok,
+        alamatPemasok: pemasok.alamatPemasok,
+        teleponPemasok: pemasok.teleponPemasok,
+      };
+
+      let daftarItem = await knex("item_beli").where(
+        "faktur",
+        pembelian.faktur
+      );
+      for (let item of daftarItem) {
+        data.item.push({
+          kodeBarang: item.kodeBarang,
+          namaBarang: item.namaBarang,
+          hargaBeli: item.hargaBeli,
+          hargaJual: item.hargaJual,
+          jumlahBeli: item.jumlahBeli,
+        });
+      }
+
+      payload.push(data);
+    }
+
+    return payload;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const ModelPembelian = {
+  list,
+};
+module.exports = ModelPembelian;
