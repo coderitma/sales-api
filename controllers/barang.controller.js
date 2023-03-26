@@ -1,75 +1,81 @@
 const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
-const { knex } = require("../config/dbsql");
-
-const getBarang = async (kodeBarang) => {
-  const barang = await knex("barang").where("kodeBarang", kodeBarang);
-  return barang;
-};
-
-const barangExist = async ({ kodeBarang }) => {
-  const barang = await getBarang(kodeBarang);
-  if (barang.length === 0) {
-    return false;
-  }
-
-  return true;
-};
+const ModelBarang = require("../models/barang.model");
 
 router.post("/", [authentication], async (req, res) => {
   try {
-    await knex("barang").insert(req.body);
-    return res.status(201).json(req.body);
+    let result = await ModelBarang.create(req.body);
+    return res.status(201).json(result);
   } catch (error) {
-    return res.status(400).json({ message: error.sqlMessage });
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
   }
 });
 
 router.get("/", [authentication], async (req, res) => {
   try {
-    let daftarBarang = await knex.select().from("barang");
-    return res.status(200).json(daftarBarang);
+    let page = req.query.page;
+    let limit = req.query.limit;
+    let kodeBarang = req.query.kodeBarang;
+    let namaBarang = req.query.namaBarang;
+    let result = await ModelBarang.list(page, limit, kodeBarang, namaBarang);
+    return res
+      .set({ pagination: JSON.stringify(result.pagination) })
+      .status(200)
+      .json(result.results);
   } catch (error) {
-    return res.status(400).json(error);
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
   }
 });
 
 router.get("/:kodeBarang", [authentication], async (req, res) => {
   try {
-    if (!(await barangExist(req.params))) {
-      return res.status(404).json({ message: "404 not found" });
+    let kodeBarang = req.params.kodeBarang;
+    let barang = await ModelBarang.barangExist(kodeBarang);
+
+    if (!barang) {
+      return res.status(404).json({ message: "404 Not Found" });
     }
-    return res.status(200).json(barang[0]);
+    return res.status(200).json(barang);
   } catch (error) {
-    return res.status(400).json(error);
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
   }
 });
 
 router.put("/:kodeBarang", [authentication], async (req, res) => {
   try {
-    if (!(await barangExist(req.params))) {
-      return res.status(404).json({ message: "404 not found" });
+    let kodeBarang = req.params.kodeBarang;
+    let barang = await ModelBarang.barangExist(kodeBarang);
+
+    if (!barang) {
+      return res.status(404).json({ message: "404 Not Found" });
     }
 
-    await knex("barang")
-      .where("kodeBarang", req.params.kodeBarang)
-      .update({ ...req.body });
-    return res.status(200).json(req.body);
+    barang = await ModelBarang.edit(kodeBarang, req.body);
+    return res.status(200).json(barang);
   } catch (error) {
-    return res.status(400).json(error);
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
   }
 });
 
 router.delete("/:kodeBarang", [authentication], async (req, res) => {
   try {
-    if (!(await barangExist(req.params))) {
-      return res.status(404).json({ message: "404 not found" });
+    let kodeBarang = req.params.kodeBarang;
+    let barang = await ModelBarang.barangExist(kodeBarang);
+
+    if (!barang) {
+      return res.status(404).json({ message: "404 Not Found" });
     }
-    await knex("barang").where({ kodeBarang: req.params.kodeBarang }).del();
-    return res.status(204).json();
+
+    barang = await ModelBarang.delete(kodeBarang);
+    return res.status(204).json(barang);
   } catch (error) {
-    return res.status(400).json(error);
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
   }
 });
 
