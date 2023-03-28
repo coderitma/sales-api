@@ -32,6 +32,32 @@ router.get("/", [authentication], async (req, res) => {
   }
 });
 
+router.get("/reporting", async (req, res) => {
+  try {
+    let page = req.query.page;
+    let limit = req.query.limit;
+    let fromTanggal = req.query.fromTanggal;
+    let toTanggal = req.query.toTanggal;
+    let result = await ModelPembelian.report(
+      page,
+      limit,
+      fromTanggal,
+      toTanggal
+    );
+
+    const { pagination, resultData, resultTotal } = result;
+    return res
+      .set({
+        pagination: JSON.stringify(pagination),
+      })
+      .status(200)
+      .json({ ...resultTotal[0][0], item: resultData[0] });
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
+  }
+});
+
 router.get("/:faktur", [authentication], async (req, res) => {
   try {
     let faktur = req.params.faktur;
@@ -46,6 +72,12 @@ router.get("/:faktur", [authentication], async (req, res) => {
     console.error(error);
     return res.status(400).json({ message: "Bad Request" });
   }
+});
+
+router.post("/:faktur/print", async (req, res) => {
+  res.setHeader("Content-disposition", "attachment; filename=a.pdf");
+  res.setHeader("Content-type", "application/pdf");
+  // belum diterapkan
 });
 
 module.exports = router;

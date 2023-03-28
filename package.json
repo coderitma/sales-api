@@ -21,7 +21,8 @@
     "knex": "^2.4.2",
     "mongoose": "^7.0.2",
     "mysql": "^2.18.1",
-    "mysql2": "^3.2.0"
+    "mysql2": "^3.2.0",
+    "pdfkit": "^0.13.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.21"

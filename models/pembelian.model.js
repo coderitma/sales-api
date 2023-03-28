@@ -109,4 +109,53 @@ ModelPembelian.get = async (faktur) => {
   return payload;
 };
 
+ModelPembelian.report = async (page, limit, fromTanggal, toTanggal) => {
+  limit = limit ? parseInt(limit) : 10;
+  page = page ? parseInt(page) : 1;
+  if (page < 1) page = 1;
+  let offset = (page - 1) * limit;
+
+  let resultCount = await knex.raw(`
+    SELECT count(id) as total
+    FROM item_beli 
+    WHERE faktur IN (
+      SELECT faktur 
+      FROM pembelian 
+      WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}' );
+  `);
+
+  let resultData = await knex.raw(
+    `SELECT 
+      namaBarang, kodeBarang,
+      hargaBeli, SUM(jumlahBeli) jumlahBeli, 
+      SUM(subtotal) as total 
+    FROM item_beli 
+    WHERE faktur IN (
+      SELECT faktur 
+      FROM pembelian 
+      WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}') 
+    GROUP BY kodeBarang
+    LIMIT ${limit}
+    OFFSET ${offset};`
+  );
+
+  let resultTotal = await knex.raw(`
+  SELECT SUM(total) as grandTotal FROM pembelian WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}';
+  `);
+
+  totalPage = Math.ceil(resultCount[0][0].total / limit);
+  let prev = page - 1 > 0 ? page - 1 : null;
+  let next = page + 1 > totalPage ? null : page + 1;
+
+  return {
+    pagination: {
+      page,
+      limit,
+      next,
+      prev,
+    },
+    resultData,
+    resultTotal,
+  };
+};
 module.exports = ModelPembelian;
