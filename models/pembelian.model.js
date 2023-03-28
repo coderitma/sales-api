@@ -75,7 +75,7 @@ ModelPembelian.list = async (page, limit, faktur, kodePemasok) => {
   }
 
   if (kodePemasok) {
-    qb = db.whereLike("kodePemasok", `%${kodePemasok}%`);
+    qb = qb.whereLike("kodePemasok", `%${kodePemasok}%`);
     qbCount = qbCount.whereLike("kodePemasok", `%${kodePemasok}%`);
   }
 
@@ -103,7 +103,7 @@ ModelPembelian.get = async (faktur) => {
 
   let payload = {
     ...pembelian,
-    pemasok,
+    pemasok: pemasok[0],
     item: daftarItem,
   };
   return payload;

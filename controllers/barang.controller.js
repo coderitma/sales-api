@@ -13,6 +13,16 @@ router.post("/", [authentication], async (req, res) => {
   }
 });
 
+router.post("/logging", [authentication], async (req, res) => {
+  try {
+    console.log(req.body);
+    return res.status(200).json({ logger: req.body });
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
+  }
+});
+
 router.get("/", [authentication], async (req, res) => {
   try {
     let page = req.query.page;
