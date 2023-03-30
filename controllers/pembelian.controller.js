@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelPembelian = require("../models/pembelian.model");
+const { createReportPembelian } = require("../services/print.service");
 
 router.post("/", [authentication], async (req, res) => {
   try {
@@ -26,6 +27,22 @@ router.get("/", [authentication], async (req, res) => {
       })
       .status(200)
       .json(result.results);
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ message: "Bad Request" });
+  }
+});
+
+router.get("/:faktur", [authentication], async (req, res) => {
+  try {
+    let faktur = req.params.faktur;
+    let pembelian = await ModelPembelian.pembelianExist(faktur);
+    if (!pembelian) {
+      return res.status(404).json({ message: "404 Not Found" });
+    }
+
+    let result = await ModelPembelian.get(faktur);
+    return res.status(200).json(result);
   } catch (error) {
     console.error(error);
     return res.status(400).json({ message: "Bad Request" });
@@ -58,26 +75,12 @@ router.get("/reporting", async (req, res) => {
   }
 });
 
-router.get("/:faktur", [authentication], async (req, res) => {
-  try {
-    let faktur = req.params.faktur;
-    let pembelian = await ModelPembelian.pembelianExist(faktur);
-    if (!pembelian) {
-      return res.status(404).json({ message: "404 Not Found" });
-    }
-
-    let result = await ModelPembelian.get(faktur);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
-  }
-});
-
-router.post("/:faktur/print", async (req, res) => {
-  res.setHeader("Content-disposition", "attachment; filename=a.pdf");
-  res.setHeader("Content-type", "application/pdf");
-  // belum diterapkan
-});
+// router.post("/:faktur/print", async (req, res) => {
+//   res.setHeader("Content-disposition", "attachment; filename=a.pdf");
+//   res.setHeader("Content-type", "application/pdf");
+//   // belum diterapkan
+//   console.log(req.params);
+//   await createReportPembelian(req.params.faktur, res);
+// });
 
 module.exports = router;

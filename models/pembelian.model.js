@@ -143,9 +143,7 @@ ModelPembelian.report = async (page, limit, fromTanggal, toTanggal) => {
   SELECT SUM(total) as grandTotal FROM pembelian WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}';
   `);
 
-  // incase, ini mesti dikurangi 1 untuk mendapatkan total aslinya
-  // agar tidak terjadi pagination berlebih saat next di UI FE nya.
-  totalPage = Math.ceil(resultCount[0][0].total - 1 / limit);
+  totalPage = Math.ceil(resultCount[0][0].total / limit);
   let prev = page - 1 > 0 ? page - 1 : null;
   let next = page + 1 > totalPage ? null : page + 1;
 
