@@ -1,5 +1,6 @@
 const { knex } = require("../config/dbsql");
 const ModelPemasok = require("./pemasok.model");
+var xl = require("excel4node");
 
 const TABLE = "pembelian";
 const ModelPembelian = {};
@@ -109,20 +110,17 @@ ModelPembelian.get = async (faktur) => {
   return payload;
 };
 
-ModelPembelian.report = async (page, limit, fromTanggal, toTanggal) => {
-  limit = limit ? parseInt(limit) : 10;
-  page = page ? parseInt(page) : 1;
-  if (page < 1) page = 1;
-  let offset = (page - 1) * limit;
+ModelPembelian.report = async (fromTanggal, toTanggal) => {
+  var wb = new xl.Workbook();
+  var ws = wb.addWorksheet("Sheet 1");
 
-  let resultCount = await knex.raw(`
-    SELECT count(id) as total
-    FROM item_beli 
-    WHERE faktur IN (
-      SELECT faktur 
-      FROM pembelian 
-      WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}' );
-  `);
+  var style = wb.createStyle({
+    font: {
+      bold: true,
+      size: 12,
+    },
+    numberFormat: "Rp#.##0; (Rp#.##0,00); -",
+  });
 
   let resultData = await knex.raw(
     `SELECT 
@@ -134,28 +132,58 @@ ModelPembelian.report = async (page, limit, fromTanggal, toTanggal) => {
       SELECT faktur 
       FROM pembelian 
       WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}') 
-    GROUP BY kodeBarang
-    LIMIT ${limit}
-    OFFSET ${offset};`
+    GROUP BY kodeBarang`
   );
 
   let resultTotal = await knex.raw(`
   SELECT SUM(total) as grandTotal FROM pembelian WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}';
   `);
 
-  totalPage = Math.ceil(resultCount[0][0].total / limit);
-  let prev = page - 1 > 0 ? page - 1 : null;
-  let next = page + 1 > totalPage ? null : page + 1;
+  if (resultData[0].length > 0) {
+    let row = 1;
+    let col = 1;
+    // create header
+    let headers = [
+      "Kode Barang",
+      "Nama Barang",
+      "Harga Beli",
+      "Jumlah Beli",
+      "Total",
+    ];
+    for (const header of headers) {
+      ws.cell(row, col).string(header).style(style);
+      col = col + 1;
+    }
+    row = row + 1;
 
-  return {
-    pagination: {
-      page,
-      limit,
-      next,
-      prev,
-    },
-    resultData,
-    resultTotal,
-  };
+    for (const data of resultData[0]) {
+      let result = Object.values(JSON.parse(JSON.stringify(data)));
+      console.log(result);
+      let col = 1;
+      for (const r of result) {
+        if (typeof r === "string") {
+          ws.column(col).setWidth(r.length + 10);
+          ws.cell(row, col).string(r);
+        }
+
+        if (typeof r === "number") {
+          ws.column(col).setWidth(r.toString().length + 10);
+          ws.cell(row, col).number(r);
+        }
+        col = col + 1;
+      }
+      row = row + 1;
+    }
+
+    ws.cell(row + 1, 1)
+      .string("Grand Total")
+      .style(style);
+    ws.cell(row + 1, 5)
+      .number(resultTotal[0][0].grandTotal)
+      .style(style);
+    return wb;
+  } else {
+    return;
+  }
 };
 module.exports = ModelPembelian;

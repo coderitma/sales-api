@@ -2,14 +2,19 @@ const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelPembelian = require("../models/pembelian.model");
-const { createReportPembelian } = require("../services/print.service");
+const PembelianValidator = require("../validators/pembelian.validator");
 
 router.post("/", [authentication], async (req, res) => {
   try {
+    await PembelianValidator.create(req, res);
     let result = await ModelPembelian.create(req.body);
     return res.status(201).json(result);
   } catch (error) {
-    return res.status(400).json(error);
+    return res
+      .status(error.status ? error.status : 400)
+      .json({
+        message: error.message ? error.message : "Something when wrong!",
+      });
   }
 });
 
@@ -48,39 +53,5 @@ router.get("/:faktur", [authentication], async (req, res) => {
     return res.status(400).json({ message: "Bad Request" });
   }
 });
-
-router.get("/reporting", async (req, res) => {
-  try {
-    let page = req.query.page;
-    let limit = req.query.limit;
-    let fromTanggal = req.query.fromTanggal;
-    let toTanggal = req.query.toTanggal;
-    let result = await ModelPembelian.report(
-      page,
-      limit,
-      fromTanggal,
-      toTanggal
-    );
-
-    const { pagination, resultData, resultTotal } = result;
-    return res
-      .set({
-        pagination: JSON.stringify(pagination),
-      })
-      .status(200)
-      .json({ ...resultTotal[0][0], item: resultData[0] });
-  } catch (error) {
-    console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
-  }
-});
-
-// router.post("/:faktur/print", async (req, res) => {
-//   res.setHeader("Content-disposition", "attachment; filename=a.pdf");
-//   res.setHeader("Content-type", "application/pdf");
-//   // belum diterapkan
-//   console.log(req.params);
-//   await createReportPembelian(req.params.faktur, res);
-// });
 
 module.exports = router;
