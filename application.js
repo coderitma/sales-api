@@ -5,11 +5,8 @@ const cors = require("cors");
 const express = require("express");
 const application = express();
 
-application.use(
-  cors({
-    origin: "http://localhost:3001",
-  })
-);
+application.use(cors());
+application.options("*", cors());
 
 application.use(express.json());
 application.use("/users", require("./controllers/user.controller"));

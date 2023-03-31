@@ -110,7 +110,7 @@ ModelPembelian.get = async (faktur) => {
   return payload;
 };
 
-ModelPembelian.report = async (fromTanggal, toTanggal) => {
+ModelPembelian.report = async (fromTanggal, toTanggal, req) => {
   var wb = new xl.Workbook();
   var ws = wb.addWorksheet("Sheet 1");
 
@@ -181,7 +181,12 @@ ModelPembelian.report = async (fromTanggal, toTanggal) => {
     ws.cell(row + 1, 5)
       .number(resultTotal[0][0].grandTotal)
       .style(style);
-    return wb;
+    let filePath = `reporting`;
+    let filename = `${new Date().getTime()}.xlsx`;
+    wb.write(`${filePath}/${filename}`);
+    return {
+      url: `${req.protocol}://${req.get("host")}/${filePath}/${filename}`,
+    };
   } else {
     return;
   }

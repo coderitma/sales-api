@@ -7,9 +7,9 @@ router.get("/pembelian", [authentication], async (req, res) => {
   try {
     let fromTanggal = req.query.fromTanggal;
     let toTanggal = req.query.toTanggal;
-    let result = await ModelPembelian.report(fromTanggal, toTanggal);
+    let result = await ModelPembelian.report(fromTanggal, toTanggal, req);
     if (result) {
-      result.write(`${new Date().getTime()}.xlsx`, res);
+      return res.status(200).json(result);
     }
     throw { message: "Not Found", status: 404 };
   } catch (error) {

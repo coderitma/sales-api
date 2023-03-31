@@ -2,6 +2,12 @@
   "name": "express-api-pembelian",
   "version": "1.0.0",
   "description": "",
+  "bin": "index.js",
+  "pkg": {
+    "assets": "reporting/**/*",
+    "target": ["node16-win-x64"],
+    "outputPath": "dist"
+  },
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
