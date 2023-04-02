@@ -5,8 +5,8 @@ const cors = require("cors");
 const express = require("express");
 const application = express();
 
-application.use(cors());
-application.options("*", cors());
+// application.use(cors());
+// application.options("localhost:3000", cors());
 
 application.use(express.json());
 application.use("/users", require("./controllers/user.controller"));

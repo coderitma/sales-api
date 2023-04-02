@@ -6,7 +6,7 @@ const server = http.createServer(application);
 const { PORT } = process.env;
 const port = process.env.PORT || PORT || 4001;
 
-application.use("/reporting", express.static("reporting"));
+application.use("/reports", express.static("reports"));
 
 server.listen(port, () => {
   console.log(`Server running on port ${port}`);
