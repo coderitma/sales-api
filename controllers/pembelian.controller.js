@@ -7,6 +7,7 @@ const { responseError } = require("../helpers/response.helpers");
 
 router.post("/", [authentication], async (req, res) => {
   try {
+    // TODO: fix validation PembelianValidator.create
     // await PembelianValidator.create(req, res);
     let result = await ModelPembelian.create(req);
     return res.status(201).json(result);
