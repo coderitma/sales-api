@@ -1,4 +1,5 @@
 const { knex } = require("../config/dbsql");
+const { pageLimitOffset, prevNext } = require("../helpers/pagination.helper");
 
 const TABLE = "barang";
 const ModelBarang = {};
@@ -10,17 +11,16 @@ ModelBarang.barangExist = async (kodeBarang) => {
   }
 };
 
-ModelBarang.create = async (barang) => {
-  await knex(TABLE).insert(barang);
-  return barang;
+ModelBarang.create = async (req) => {
+  let { body } = req;
+  await knex(TABLE).insert(body);
+  return body;
 };
 
-ModelBarang.list = async (page, limit, kodeBarang, namaBarang) => {
-  limit = limit ? parseInt(limit) : 10;
-  page = page ? parseInt(page) : 1;
-  console.log(page);
-  if (page < 1) page = 1;
-  let offset = (page - 1) * limit;
+// page, limit, kodeBarang, namaBarang
+ModelBarang.list = async (req) => {
+  let { kodeBarang, namaBarang } = req.query;
+  let { page, limit, offset } = pageLimitOffset(req);
 
   let qb = knex(TABLE);
   let qbCount = knex(TABLE);
@@ -31,15 +31,14 @@ ModelBarang.list = async (page, limit, kodeBarang, namaBarang) => {
   }
 
   if (namaBarang) {
-    qb = db.whereLike("namaBarang", `%${namaBarang}%`);
+    qb = qb.whereLike("namaBarang", `%${namaBarang}%`);
     qbCount = qbCount.whereLike("namaBarang", `%${namaBarang}%`);
   }
 
   let totalData = await qbCount.count("* as count").first();
   results = await qb.limit(limit).offset(offset);
-  totalPage = Math.ceil(totalData.count / limit);
-  let prev = page - 1 > 0 ? page - 1 : null;
-  let next = page + 1 > totalPage ? null : page + 1;
+
+  let { prev, next } = prevNext(totalData.count, limit, page);
 
   return {
     pagination: {

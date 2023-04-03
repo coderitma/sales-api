@@ -10,11 +10,9 @@ router.post("/", [authentication], async (req, res) => {
     let result = await ModelPembelian.create(req.body);
     return res.status(201).json(result);
   } catch (error) {
-    return res
-      .status(error.status ? error.status : 400)
-      .json({
-        message: error.message ? error.message : "Something when wrong!",
-      });
+    return res.status(error.status ? error.status : 400).json({
+      message: error.message ? error.message : "Something when wrong!",
+    });
   }
 });
 

@@ -5,18 +5,8 @@ const ModelBarang = require("../models/barang.model");
 
 router.post("/", [authentication], async (req, res) => {
   try {
-    let result = await ModelBarang.create(req.body);
+    let result = await ModelBarang.create(req);
     return res.status(201).json(result);
-  } catch (error) {
-    console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
-  }
-});
-
-router.post("/logging", [authentication], async (req, res) => {
-  try {
-    console.log(req.body);
-    return res.status(200).json({ logger: req.body });
   } catch (error) {
     console.error(error);
     return res.status(400).json({ message: "Bad Request" });
@@ -25,11 +15,7 @@ router.post("/logging", [authentication], async (req, res) => {
 
 router.get("/", [authentication], async (req, res) => {
   try {
-    let page = req.query.page;
-    let limit = req.query.limit;
-    let kodeBarang = req.query.kodeBarang;
-    let namaBarang = req.query.namaBarang;
-    let result = await ModelBarang.list(page, limit, kodeBarang, namaBarang);
+    let result = await ModelBarang.list(req);
     return res
       .set({ pagination: JSON.stringify(result.pagination) })
       .status(200)
