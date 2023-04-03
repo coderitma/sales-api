@@ -2,20 +2,16 @@ const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelReporting = require("../models/reporting.model");
+const { responseError } = require("../helpers/response.helpers");
 
 router.get("/", [authentication], async (req, res) => {
   try {
-    let results = await ModelReporting.list(req);
-    return res
-      .set({
-        pagination: JSON.stringify(results.pagination),
-      })
-      .status(200)
-      .json(results.results);
+    // TODO: move pagination header to response body
+    let { pagination, results } = await ModelReporting.list(req);
+    pagination = JSON.stringify(pagination);
+    return res.set({ pagination }).status(200).json(results);
   } catch (error) {
-    return res
-      .status(error.status || 400)
-      .json({ message: error.message || "Something when wrong" });
+    return responseError(res, error, true);
   }
 });
 

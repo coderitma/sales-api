@@ -1,6 +1,7 @@
 const { knex } = require("../config/dbsql");
 var xl = require("excel4node");
 const fs = require("fs");
+const { pageLimitOffset, prevNext } = require("../helpers/pagination.helper");
 const TABLE = "reporting";
 const ModelReporting = {};
 const JENIS = {
@@ -10,12 +11,8 @@ const JENIS = {
 };
 
 ModelReporting.list = async (req) => {
-  let limit = req.query.limit ? parseInt(req.query.limit) : 10;
-  let page = req.query.page ? parseInt(req.query.page) : 1;
-  let jenis = req.query.jenis;
-
-  if (page < 1) page = 1;
-  let offset = (page - 1) * limit;
+  let { jenis } = req.query;
+  let { page, limit, offset } = pageLimitOffset(req);
 
   let qb = knex("reporting");
   let qbCount = knex("reporting");
@@ -30,10 +27,7 @@ ModelReporting.list = async (req) => {
 
   let totalData = await qbCount.count("* as count").first();
   let results = await qb.limit(limit).offset(offset);
-
-  totalPage = Math.ceil(totalData.count / limit);
-  let prev = page - 1 > 0 ? page - 1 : null;
-  let next = page + 1 > totalPage ? null : page + 1;
+  let { prev, next } = prevNext(totalData.count, limit, page);
 
   return {
     pagination: {

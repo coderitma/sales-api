@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelPembelian = require("../models/pembelian.model");
-const PembelianValidator = require("../validators/pembelian.validator");
+// const PembelianValidator = require("../validators/pembelian.validator");
 const { responseError } = require("../helpers/response.helpers");
 
 router.post("/", [authentication], async (req, res) => {
