@@ -17,48 +17,34 @@ router.get("/", [authentication], async (req, res) => {
 
 router.post("/pembelian", [authentication], async (req, res) => {
   try {
-    let result = await ModelReporting.reportPembelian(req);
-    if (result) {
-      return res.status(200).json(result);
-    }
-    throw { message: "Not Found", status: 404 };
+    return res.status(200).json(await ModelReporting.reportPembelian(req));
   } catch (error) {
-    return res
-      .status(error.status || 400)
-      .json({ message: error.message || "Something when wrong" });
+    return responseError(res, error, true);
   }
 });
 
 router.post("/unduh", [authentication], async (req, res) => {
   try {
-    const file = `${req.body.path}`;
-    return res.download(file);
+    return res.download(req.body.path);
   } catch (error) {
-    return res
-      .status(error.status || 400)
-      .json({ message: error.message || "Something when wrong" });
+    return responseError(res, error, true);
   }
 });
 
 router.get("/:id", [authentication], async (req, res) => {
   try {
-    let result = await ModelReporting.get(req);
-    return res.status(200).json(result);
+    return res.status(200).json(await ModelReporting.get(req));
   } catch (error) {
-    return res
-      .status(error.status || 400)
-      .json({ message: error.message || "Something when wrong" });
+    return responseError(res, error, true);
   }
 });
 
 router.delete("/:id", [authentication], async (req, res) => {
   try {
-    let result = await ModelReporting.delete(req);
-    return res.status(200).json(result);
+    await ModelReporting.delete(req);
+    return res.status(200).json(null);
   } catch (error) {
-    return res
-      .status(error.status || 400)
-      .json({ message: error.message || "Something when wrong" });
+    return responseError(res, error, true);
   }
 });
 

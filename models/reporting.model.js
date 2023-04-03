@@ -2,6 +2,11 @@ const { knex } = require("../config/dbsql");
 var xl = require("excel4node");
 const fs = require("fs");
 const { pageLimitOffset, prevNext } = require("../helpers/pagination.helper");
+const {
+  setResponseError,
+  STATUS_CODE_404,
+  STATUS_CODE_400,
+} = require("../helpers/response.helpers");
 const TABLE = "reporting";
 const ModelReporting = {};
 const JENIS = {
@@ -42,34 +47,25 @@ ModelReporting.list = async (req) => {
 
 ModelReporting.get = async (req) => {
   const { user, params } = req;
-  let reporting = await knex("reporting").where({
-    id: params.id,
-    email: user.email,
-  });
+  let reporting = (
+    await knex("reporting").where({
+      id: params.id,
+      email: user.email,
+    })
+  )[0];
 
-  if (reporting.length === 0) {
-    throw { message: "report not found", status: 404 };
-  }
+  if (!reporting) throw setResponseError(STATUS_CODE_404);
 
   return reporting;
 };
 
 ModelReporting.delete = async (req) => {
   const { user, params } = req;
+  const reporting = ModelReporting.get(req);
 
-  let reporting = await knex("reporting").where({
-    id: params.id,
-    email: user.email,
-  });
+  fs.unlink(reporting.path, async (err) => {
+    if (err) throw setResponseError(STATUS_CODE_400);
 
-  if (reporting.length === 0) {
-    throw { message: "report not found", status: 404 };
-  }
-
-  fs.unlink(reporting[0].path, async (err) => {
-    if (err) {
-      throw { message: "File tidak ada untuk dihapus", status: 400 };
-    }
     await knex("reporting")
       .where({
         id: params.id,
@@ -77,8 +73,6 @@ ModelReporting.delete = async (req) => {
       })
       .delete();
   });
-
-  return;
 };
 
 ModelReporting.reportPembelian = async (req) => {
