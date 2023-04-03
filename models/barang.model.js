@@ -51,8 +51,13 @@ ModelBarang.list = async (req) => {
   };
 };
 
-ModelBarang.get = async (kodeBarang) => {
-  return await knex(TABLE).where("kodeBarang", kodeBarang);
+ModelBarang.get = async (req) => {
+  let { kodeBarang } = req.params;
+  let barang = await knex(TABLE).where("kodeBarang", kodeBarang);
+
+  if (barang && barang.length > 0) return barang[0];
+
+  throw { message: "Barang: not found", status: 404 };
 };
 
 ModelBarang.edit = async (kodeBarang, barang) => {

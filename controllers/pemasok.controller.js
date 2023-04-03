@@ -1,81 +1,63 @@
 const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
-const { knex } = require("../config/dbsql");
 const ModelPemasok = require("../models/pemasok.model");
+const { responseError } = require("../helpers/response.helpers");
 
 router.post("/", [authentication], async (req, res) => {
   try {
-    let result = await ModelPemasok.create(req.body);
+    let result = await ModelPemasok.create(req);
     return res.status(201).json(result);
   } catch (error) {
     console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
+    return responseError(res, error);
   }
 });
 
 router.get("/", [authentication], async (req, res) => {
   try {
-    let page = req.query.page;
-    let kodePemasok = req.query.kodePemasok;
-    let namaPemasok = req.query.namaPemasok;
-    let result = await ModelPemasok.list(page, 3, kodePemasok, namaPemasok);
+    let result = await ModelPemasok.list(req);
 
     return res
       .set({
         pagination: JSON.stringify(result.pagination),
+        link: JSON.stringify(result.pagination),
       })
       .status(200)
       .json(result.results);
   } catch (error) {
     console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
+    return responseError(res, error);
   }
 });
 
 router.get("/:kodePemasok", [authentication], async (req, res) => {
   try {
-    let kodePemasok = req.params.kodePemasok;
-    let pemasok = await ModelPemasok.pemasokExist(kodePemasok);
-    if (!pemasok) {
-      return res.status(404).json({ message: "404 Not Found" });
-    }
+    let pemasok = await ModelPemasok.get(req);
     return res.status(200).json(pemasok);
   } catch (error) {
     console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
+    return responseError(res, error);
   }
 });
 
 router.put("/:kodePemasok", [authentication], async (req, res) => {
   try {
-    let kodePemasok = req.params.kodePemasok;
-    let pemasok = await ModelPemasok.pemasokExist(kodePemasok);
-    if (!pemasok) {
-      return res.status(404).json({ message: "404 Not Found" });
-    }
-
-    pemasok = await ModelPemasok.edit(kodePemasok, req.body);
+    let pemasok = await ModelPemasok.edit(req);
     return res.status(200).json(pemasok);
   } catch (error) {
     console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
+    return responseError(res, error);
   }
 });
 
 router.delete("/:kodePemasok", [authentication], async (req, res) => {
   try {
-    let kodePemasok = req.params.kodePemasok;
-    let pemasok = await ModelPemasok.pemasokExist(kodePemasok);
-    if (!pemasok) {
-      return res.status(404).json({ message: "404 Not Found" });
-    }
-
-    pemasok = await ModelPemasok.delete(kodePemasok);
+    pemasok = await ModelPemasok.delete(req);
     return res.status(204).json(pemasok);
   } catch (error) {
     console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
+    return responseError(res, error);
   }
 });
 

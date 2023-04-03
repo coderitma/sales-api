@@ -3,27 +3,21 @@ const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelPembelian = require("../models/pembelian.model");
 const PembelianValidator = require("../validators/pembelian.validator");
+const { responseError } = require("../helpers/response.helpers");
 
 router.post("/", [authentication], async (req, res) => {
   try {
-    await PembelianValidator.create(req, res);
-    let result = await ModelPembelian.create(req.body);
+    // await PembelianValidator.create(req, res);
+    let result = await ModelPembelian.create(req);
     return res.status(201).json(result);
   } catch (error) {
-    return res.status(error.status ? error.status : 400).json({
-      message: error.message ? error.message : "Something when wrong!",
-    });
+    return responseError(res, error, true);
   }
 });
 
 router.get("/", [authentication], async (req, res) => {
   try {
-    let page = req.query.page;
-    let limit = req.query.limit;
-    let faktur = req.query.faktur;
-    let kodePemasok = req.query.kodePemasok;
-    let result = await ModelPembelian.list(page, limit, faktur, kodePemasok);
-
+    let result = await ModelPembelian.list(req);
     return res
       .set({
         pagination: JSON.stringify(result.pagination),
@@ -31,24 +25,16 @@ router.get("/", [authentication], async (req, res) => {
       .status(200)
       .json(result.results);
   } catch (error) {
-    console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
+    return responseError(res, error, true);
   }
 });
 
 router.get("/:faktur", [authentication], async (req, res) => {
   try {
-    let faktur = req.params.faktur;
-    let pembelian = await ModelPembelian.pembelianExist(faktur);
-    if (!pembelian) {
-      return res.status(404).json({ message: "404 Not Found" });
-    }
-
-    let result = await ModelPembelian.get(faktur);
+    let result = await ModelPembelian.get(req);
     return res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-    return res.status(400).json({ message: "Bad Request" });
+    return responseError(res, error, true);
   }
 });
 

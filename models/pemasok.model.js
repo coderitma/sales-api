@@ -1,27 +1,22 @@
 const { knex } = require("../config/dbsql");
+const { pageLimitOffset, prevNext } = require("../helpers/pagination.helper");
+const {
+  setResponseError,
+  STATUS_CODE_404,
+} = require("../helpers/response.helpers");
 
 const TABLE = "pemasok";
 const ModelPemasok = {};
 
-ModelPemasok.pemasokExist = async (kodePemasok) => {
-  let pemasok = await knex(TABLE).where("kodePemasok", kodePemasok);
-  if (pemasok) {
-    return pemasok[0];
-  }
+ModelPemasok.create = async (req) => {
+  const { body } = req;
+  await knex(TABLE).insert(body);
+  return body;
 };
 
-ModelPemasok.create = async (pemasok) => {
-  await knex(TABLE).insert(pemasok);
-  return pemasok;
-};
-
-ModelPemasok.list = async (page, limit, kodePemasok, namaPemasok) => {
-  limit = limit ? parseInt(limit) : 10;
-  page = page ? parseInt(page) : 1;
-  console.log(page);
-  if (page < 1) page = 1;
-  let offset = (page - 1) * limit;
-
+ModelPemasok.list = async (req) => {
+  const { page, limit, offset } = pageLimitOffset(req);
+  const { kodePemasok, namaPemasok } = req.query;
   let qb = knex(TABLE);
   let qbCount = knex(TABLE);
 
@@ -37,10 +32,9 @@ ModelPemasok.list = async (page, limit, kodePemasok, namaPemasok) => {
 
   let totalData = await qbCount.count("* as count").first();
   results = await qb.limit(limit).offset(offset);
-  totalPage = Math.ceil(totalData.count / limit);
-  let prev = page - 1 > 0 ? page - 1 : null;
-  let next = page + 1 > totalPage ? null : page + 1;
-  console.log(limit, totalPage, "aa");
+
+  const { prev, next } = prevNext(totalData.count, limit, page);
+
   return {
     pagination: {
       page,
@@ -52,16 +46,37 @@ ModelPemasok.list = async (page, limit, kodePemasok, namaPemasok) => {
   };
 };
 
-ModelPemasok.get = async (kodePemasok) => {
-  return await knex(TABLE).where("kodePemasok", kodePemasok);
+ModelPemasok.get = async (req) => {
+  const { kodePemasok } = req.params;
+  let pemasok = await knex(TABLE).where("kodePemasok", kodePemasok);
+
+  if (pemasok && pemasok.length > 0) {
+    return pemasok[0];
+  }
+
+  throw setResponseError(STATUS_CODE_404);
 };
 
-ModelPemasok.edit = async (kodePemasok, pemasok) => {
-  await knex(TABLE).where("kodePemasok", kodePemasok).update(pemasok);
-  return pemasok;
+ModelPemasok.getFromPembelian = async (pembelian) => {
+  let pemasok = await knex(TABLE).where("kodePemasok", pembelian.kodePemasok);
+
+  if (pemasok && pemasok.length > 0) {
+    return pemasok[0];
+  }
+
+  throw setResponseError(STATUS_CODE_404);
 };
 
-ModelPemasok.delete = async (kodePemasok) => {
+ModelPemasok.edit = async (req) => {
+  const { kodePemasok } = req.params;
+  await ModelPemasok.get(req);
+  const { body } = req;
+  await knex(TABLE).where("kodePemasok", kodePemasok).update(body);
+  return body;
+};
+
+ModelPemasok.delete = async (req) => {
+  const { kodePemasok } = req.params;
   await knex(TABLE).where("kodePemasok", kodePemasok).del();
   return null;
 };

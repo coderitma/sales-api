@@ -1,4 +1,9 @@
 const { knex } = require("../config/dbsql");
+const { pageLimitOffset, prevNext } = require("../helpers/pagination.helper");
+const {
+  setResponseError,
+  STATUS_CODE_404,
+} = require("../helpers/response.helpers");
 const ModelPemasok = require("./pemasok.model");
 var xl = require("excel4node");
 
@@ -12,14 +17,16 @@ ModelPembelian.pembelianExist = async (faktur) => {
   }
 };
 
-ModelPembelian.create = async (payload) => {
+ModelPembelian.create = async (req) => {
+  let { body } = req;
   await knex.transaction(async (trx) => {
-    const { pemasok, item, ...pembelian } = payload;
+    const { pemasok, item, ...pembelian } = body;
 
     // menghitung harga total dari quantity
-    // menyiapkan data item
     let total = 0;
+    // menyiapkan data item
     let dataInsertItemBeli = [];
+
     for (let i = 0; i < item.length; i++) {
       total += item[i].hargaBeli * item[i].jumlahBeli;
       let temp = {
@@ -58,14 +65,12 @@ ModelPembelian.create = async (payload) => {
     }
   });
 
-  return payload;
+  return body;
 };
 
-ModelPembelian.list = async (page, limit, faktur, kodePemasok) => {
-  limit = limit ? parseInt(limit) : 10;
-  page = page ? parseInt(page) : 1;
-  if (page < 1) page = 1;
-  let offset = (page - 1) * limit;
+ModelPembelian.list = async (req) => {
+  let { faktur, kodePemasok } = req.query;
+  let { page, limit, offset } = pageLimitOffset(req);
 
   let qb = knex(TABLE);
   let qbCount = knex(TABLE);
@@ -82,43 +87,38 @@ ModelPembelian.list = async (page, limit, faktur, kodePemasok) => {
 
   let totalData = await qbCount.count("* as count").first();
   results = await qb.limit(limit).offset(offset);
-  totalPage = Math.ceil(totalData.count / limit);
-  let prev = page - 1 > 0 ? page - 1 : null;
-  let next = page + 1 > totalPage ? null : page + 1;
+  let { prev, next } = prevNext(totalData.count, limit, page);
 
   return {
-    pagination: {
-      page,
-      limit,
-      next,
-      prev,
-    },
+    pagination: { page, limit, next, prev },
     results,
   };
 };
 
-ModelPembelian.get = async (faktur) => {
+ModelPembelian.get = async (req) => {
+  let { faktur } = req.params;
   let pembelian = (await knex("pembelian").where("faktur", faktur))[0];
-  let pemasok = await ModelPemasok.get(pembelian.kodePemasok);
-  let daftarItem = await knex("item_beli").where("faktur", pembelian.faktur);
 
-  let payload = {
-    ...pembelian,
-    pemasok: pemasok[0],
-    item: daftarItem,
-  };
-  return payload;
+  if (!pembelian) throw setResponseError(STATUS_CODE_404);
+
+  let pemasok = (await ModelPemasok.getFromPembelian(pembelian))[0];
+  let item = await knex("item_beli").where("faktur", pembelian.faktur);
+
+  return { ...pembelian, pemasok, item };
 };
 
-ModelPembelian.report = async (fromTanggal, toTanggal, req) => {
-  var wb = new xl.Workbook();
-  var ws = wb.addWorksheet("Sheet 1");
-
-  var style = wb.createStyle({
-    font: {
-      bold: true,
-      size: 12,
-    },
+ModelPembelian.report = async (req) => {
+  let { fromTanggal, toTanggal } = req.body;
+  let filePath = `reporting`;
+  let filename = `${new Date().getTime()}.xlsx`;
+  let writeFileLocation = `${filePath}/${filename}`;
+  let url = `${req.protocol}://${req.get("host")}/${writeFileLocation}`;
+  let row = 1;
+  let col = 1;
+  let wb = new xl.Workbook();
+  let ws = wb.addWorksheet("Sheet 1");
+  let style = wb.createStyle({
+    font: { bold: true, size: 12 },
     numberFormat: "Rp#.##0; (Rp#.##0,00); -",
   });
 
@@ -131,64 +131,64 @@ ModelPembelian.report = async (fromTanggal, toTanggal, req) => {
     WHERE faktur IN (
       SELECT faktur 
       FROM pembelian 
-      WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}') 
+      WHERE tanggal 
+      BETWEEN '${fromTanggal}' AND '${toTanggal}'
+    ) 
     GROUP BY kodeBarang`
   );
 
   let resultTotal = await knex.raw(`
-  SELECT SUM(total) as grandTotal FROM pembelian WHERE tanggal BETWEEN '${fromTanggal}' AND '${toTanggal}';
+    SELECT SUM(total) as grandTotal 
+    FROM pembelian WHERE tanggal 
+    BETWEEN '${fromTanggal}' AND '${toTanggal}';
   `);
 
-  if (resultData[0].length > 0) {
-    let row = 1;
+  if (resultData[0].length === 0) throw setResponseError(STATUS_CODE_404);
+
+  // create header
+  let headers = [
+    "Kode Barang",
+    "Nama Barang",
+    "Harga Beli",
+    "Jumlah Beli",
+    "Total",
+  ];
+
+  for (const header of headers) {
+    ws.cell(row, col).string(header).style(style);
+    col = col + 1;
+  }
+
+  row = row + 1;
+
+  // Create data
+  for (const data of resultData[0]) {
+    let result = Object.values(JSON.parse(JSON.stringify(data)));
     let col = 1;
-    // create header
-    let headers = [
-      "Kode Barang",
-      "Nama Barang",
-      "Harga Beli",
-      "Jumlah Beli",
-      "Total",
-    ];
-    for (const header of headers) {
-      ws.cell(row, col).string(header).style(style);
+    for (const r of result) {
+      if (typeof r === "string") {
+        ws.column(col).setWidth(r.length + 10);
+        ws.cell(row, col).string(r);
+      }
+      if (typeof r === "number") {
+        ws.column(col).setWidth(r.toString().length + 10);
+        ws.cell(row, col).number(r);
+      }
       col = col + 1;
     }
     row = row + 1;
-
-    for (const data of resultData[0]) {
-      let result = Object.values(JSON.parse(JSON.stringify(data)));
-      console.log(result);
-      let col = 1;
-      for (const r of result) {
-        if (typeof r === "string") {
-          ws.column(col).setWidth(r.length + 10);
-          ws.cell(row, col).string(r);
-        }
-
-        if (typeof r === "number") {
-          ws.column(col).setWidth(r.toString().length + 10);
-          ws.cell(row, col).number(r);
-        }
-        col = col + 1;
-      }
-      row = row + 1;
-    }
-
-    ws.cell(row + 1, 1)
-      .string("Grand Total")
-      .style(style);
-    ws.cell(row + 1, 5)
-      .number(resultTotal[0][0].grandTotal)
-      .style(style);
-    let filePath = `reporting`;
-    let filename = `${new Date().getTime()}.xlsx`;
-    wb.write(`${filePath}/${filename}`);
-    return {
-      url: `${req.protocol}://${req.get("host")}/${filePath}/${filename}`,
-    };
-  } else {
-    return;
   }
+
+  ws.cell(row + 1, 1)
+    .string("Grand Total")
+    .style(style);
+
+  ws.cell(row + 1, 5)
+    .number(resultTotal[0][0].grandTotal)
+    .style(style);
+
+  wb.write(writeFileLocation);
+  return { url };
 };
+
 module.exports = ModelPembelian;

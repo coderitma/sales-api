@@ -1,0 +1,25 @@
+### AUTH USER : LOGIN
+POST http://localhost:4000/users/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "andikaoreo@gmail.com",
+  "password": "123qwe"
+}
+
+### Create Pemasok
+POST http://localhost:4000/pemasok HTTP/1.1
+Content-Type: application/json
+x-access-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFuZGlrYW9yZW9AZ21haWwuY29tIiwiaWF0IjoxNjgwNTE1MDM4LCJleHAiOjE2ODA1NTEwMzh9.gratDTz9Gy1z6BXWtBU4lCdrQZkzAztujKumBOiZ28Q
+
+{
+	"kodePemasok": "SPL-018",
+	"namaPemasok": "PT. Supplier 018",
+	"alamatPemasok": "Semarang",
+	"teleponPemasok": "081222002002"
+}
+
+###
+GET https://jsonplaceholder.typicode.com/todos HTTP/1.1
+content-type: application/json
+###
