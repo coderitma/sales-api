@@ -1,5 +1,5 @@
 const { knex } = require("../config/dbsql");
-const { pageLimitOffset, prevNext } = require("../helpers/pagination.helper");
+const { pageLimitOffset, prevNext } = require("../utils/helpers");
 const {
   setResponseError,
   STATUS_CODE_404,

@@ -1,12 +1,13 @@
 const { knex } = require("../config/dbsql");
 var xl = require("excel4node");
 const fs = require("fs");
-const { pageLimitOffset, prevNext } = require("../helpers/pagination.helper");
 const {
+  pageLimitOffset,
+  prevNext,
   setResponseError,
   STATUS_CODE_404,
   STATUS_CODE_400,
-} = require("../helpers/response.helpers");
+} = require("../utils/helpers");
 const TABLE = "reporting";
 const ModelReporting = {};
 const JENIS = {

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelReporting = require("../models/reporting.model");
-const { responseError } = require("../helpers/response.helpers");
+const { responseError } = require("../utils/helpers");
 
 router.get("/", [authentication], async (req, res) => {
   try {
@@ -11,7 +11,7 @@ router.get("/", [authentication], async (req, res) => {
     pagination = JSON.stringify(pagination);
     return res.set({ pagination }).status(200).json(results);
   } catch (error) {
-    return responseError(res, error, true);
+    return responseError(res, error);
   }
 });
 
@@ -19,7 +19,7 @@ router.post("/pembelian", [authentication], async (req, res) => {
   try {
     return res.status(200).json(await ModelReporting.reportPembelian(req));
   } catch (error) {
-    return responseError(res, error, true);
+    return responseError(res, error);
   }
 });
 
@@ -27,7 +27,7 @@ router.post("/unduh", [authentication], async (req, res) => {
   try {
     return res.download(req.body.path);
   } catch (error) {
-    return responseError(res, error, true);
+    return responseError(res, error);
   }
 });
 
@@ -35,16 +35,15 @@ router.get("/:id", [authentication], async (req, res) => {
   try {
     return res.status(200).json(await ModelReporting.get(req));
   } catch (error) {
-    return responseError(res, error, true);
+    return responseError(res, error);
   }
 });
 
 router.delete("/:id", [authentication], async (req, res) => {
   try {
-    await ModelReporting.delete(req);
-    return res.status(200).json(null);
+    return res.status(200).json(await ModelReporting.delete(req));
   } catch (error) {
-    return responseError(res, error, true);
+    return responseError(res, error);
   }
 });
 
