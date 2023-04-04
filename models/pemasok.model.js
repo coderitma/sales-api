@@ -1,24 +1,24 @@
-const { knex } = require("../config/dbsql");
 const { pageLimitOffset, prevNext } = require("../utils/helpers");
 const {
   setResponseError,
   STATUS_CODE_404,
 } = require("../helpers/response.helpers");
+const dbmaria = require("../utils/dbmaria");
 
 const TABLE = "pemasok";
 const ModelPemasok = {};
 
 ModelPemasok.create = async (req) => {
   const { body } = req;
-  await knex(TABLE).insert(body);
+  await dbmaria(TABLE).insert(body);
   return body;
 };
 
 ModelPemasok.list = async (req) => {
   const { page, limit, offset } = pageLimitOffset(req);
   const { kodePemasok, namaPemasok } = req.query;
-  let qb = knex(TABLE);
-  let qbCount = knex(TABLE);
+  let qb = dbmaria(TABLE);
+  let qbCount = dbmaria(TABLE);
 
   if (kodePemasok) {
     qb = qb.whereLike("kodePemasok", `%${kodePemasok}%`);
@@ -48,7 +48,7 @@ ModelPemasok.list = async (req) => {
 
 ModelPemasok.get = async (req) => {
   const { kodePemasok } = req.params;
-  let pemasok = await knex(TABLE).where("kodePemasok", kodePemasok);
+  let pemasok = await dbmaria(TABLE).where("kodePemasok", kodePemasok);
 
   if (pemasok && pemasok.length > 0) {
     return pemasok[0];
@@ -58,7 +58,10 @@ ModelPemasok.get = async (req) => {
 };
 
 ModelPemasok.getFromPembelian = async (pembelian) => {
-  let pemasok = await knex(TABLE).where("kodePemasok", pembelian.kodePemasok);
+  let pemasok = await dbmaria(TABLE).where(
+    "kodePemasok",
+    pembelian.kodePemasok
+  );
 
   if (pemasok && pemasok.length > 0) {
     return pemasok[0];
@@ -71,13 +74,13 @@ ModelPemasok.edit = async (req) => {
   const { kodePemasok } = req.params;
   await ModelPemasok.get(req);
   const { body } = req;
-  await knex(TABLE).where("kodePemasok", kodePemasok).update(body);
+  await dbmaria(TABLE).where("kodePemasok", kodePemasok).update(body);
   return body;
 };
 
 ModelPemasok.delete = async (req) => {
   const { kodePemasok } = req.params;
-  await knex(TABLE).where("kodePemasok", kodePemasok).del();
+  await dbmaria(TABLE).where("kodePemasok", kodePemasok).del();
   return null;
 };
 

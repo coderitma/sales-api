@@ -4,9 +4,9 @@ const {
   DB_MARIA_USERNAME,
   DB_MARIA_PASSWORD,
   DB_MARIA_NAME,
-} = require("../utils/config");
+} = require("./config");
 
-const knex = require("knex")({
+module.exports = require("knex")({
   client: "mysql",
   connection: {
     host: DB_MARIA_HOST,
@@ -16,5 +16,3 @@ const knex = require("knex")({
     database: DB_MARIA_NAME,
   },
 });
-
-module.exports = { knex };

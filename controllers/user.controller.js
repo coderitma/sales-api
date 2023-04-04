@@ -21,7 +21,7 @@ router.post("/login", async (req, res) => {
 
 router.post("/register", async (req, res) => {
   try {
-    let user = await ModelUser.get(req);
+    let user = await ModelUser.get(req, true);
     if (user)
       throw setResponseError(STATUS_CODE_400, "User has been registered.");
 
