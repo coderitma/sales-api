@@ -89,8 +89,6 @@ ServicePembelian.printReportPeriodExcel = (dataReport, res) => {
   for (const item of results) {
     let itemArrayObject = JSON.parse(JSON.stringify(item));
     itemArrayObject = Object.values(itemArrayObject);
-
-    console.log(itemArrayObject);
     ws.addRow(itemArrayObject);
   }
 
