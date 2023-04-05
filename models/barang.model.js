@@ -10,6 +10,7 @@ const TABLE = "barang";
 const ModelBarang = {};
 
 ModelBarang.create = async (req) => {
+  // TODO: create body (payload) validation
   let { body } = req;
   await dbmaria(TABLE).insert(body);
   return body;

@@ -3,12 +3,10 @@ const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelPembelian = require("../models/pembelian.model");
 const ServicePembelian = require("../services/pembelian.service");
-// const PembelianValidator = require("../validators/pembelian.validator");
 const { responseError } = require("../utils/helpers");
 
 router.post("/", [authentication], async (req, res) => {
   try {
-    // TODO: fix validation PembelianValidator.create
     // await PembelianValidator.create(req, res);
     return res.status(201).json(await ModelPembelian.create(req));
   } catch (error) {
