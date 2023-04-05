@@ -1,4 +1,4 @@
-const { knex } = require("../config/dbsql");
+const dbmaria = require("../utils/dbmaria");
 const {
   pageLimitOffset,
   prevNext,
@@ -14,7 +14,7 @@ const ModelPembelian = {};
 
 ModelPembelian.create = async (req) => {
   let { body } = req;
-  await knex.transaction(async (trx) => {
+  await dbmaria.transaction(async (trx) => {
     const { pemasok, item, ...pembelian } = body;
 
     // menghitung harga total dari quantity
@@ -37,23 +37,23 @@ ModelPembelian.create = async (req) => {
     }
 
     // menyimpan pembelian
-    await knex(TABLE).transacting(trx).insert({
+    await dbmaria(TABLE).transacting(trx).insert({
       faktur: pembelian.faktur,
       tanggal: pembelian.tanggal,
       total: total,
       kodePemasok: pemasok.kodePemasok,
     });
 
-    await knex("item_beli")
+    await dbmaria("item_beli")
       .transacting(trx)
       .insert([...dataInsertItemBeli]);
 
     // update stock
     for (let i = 0; i < item.length; i++) {
-      let data = await knex("barang")
+      let data = await dbmaria("barang")
         .where("kodeBarang", item[i].kodeBarang)
         .select();
-      await knex("barang")
+      await dbmaria("barang")
         .transacting(trx)
         .where("kodeBarang", item[i].kodeBarang)
         .update("jumlahBarang", data[0].jumlahBarang - item[i].jumlahBeli);
@@ -67,8 +67,8 @@ ModelPembelian.list = async (req) => {
   let { faktur, kodePemasok } = req.query;
   let { page, limit, offset } = pageLimitOffset(req);
 
-  let qb = knex(TABLE);
-  let qbCount = knex(TABLE);
+  let qb = dbmaria(TABLE);
+  let qbCount = dbmaria(TABLE);
 
   if (faktur) {
     qb = qb.whereLike("faktur", `%${faktur}%`);
@@ -92,14 +92,68 @@ ModelPembelian.list = async (req) => {
 
 ModelPembelian.get = async (req) => {
   let { faktur } = req.params;
-  let pembelian = (await knex("pembelian").where("faktur", faktur))[0];
+  let pembelian = (await dbmaria("pembelian").where("faktur", faktur))[0];
 
   if (!pembelian) throw setResponseError(STATUS_CODE_404);
 
   let pemasok = (await ModelPemasok.getFromPembelian(pembelian))[0];
-  let item = await knex("item_beli").where("faktur", pembelian.faktur);
+  let item = await dbmaria("item_beli")
+    .select("kodeBarang", "namaBarang", "hargaBeli", "jumlahBeli", "subtotal")
+    .where("faktur", pembelian.faktur);
 
   return { ...pembelian, pemasok, item };
+};
+
+ModelPembelian.pullByPeriod = async (req) => {
+  let { fromTanggal, toTanggal } = req.body;
+
+  grandTotal = (
+    await dbmaria("pembelian")
+      .sum("total as grandTotal")
+      .whereBetween("tanggal", [fromTanggal, toTanggal])
+  )[0].grandTotal;
+
+  subquery = await dbmaria("pembelian")
+    .select("faktur")
+    .whereBetween("tanggal", [fromTanggal, toTanggal]);
+  subquery = JSON.parse(JSON.stringify(subquery)).map((data) => data.faktur);
+
+  results = await dbmaria("item_beli")
+    .select(["namaBarang", "kodeBarang", "hargaBeli", "jumlahBeli"])
+    .sum("jumlahBeli as jumlahBeli")
+    .sum("subtotal as subtotal")
+    .whereIn("faktur", subquery)
+    .groupBy("kodeBarang");
+
+  if (!grandTotal) throw setResponseError(STATUS_CODE_404);
+
+  return { period: { fromTanggal, toTanggal }, grandTotal, results };
+};
+
+ModelPembelian.pullByDate = async (req) => {
+  let { tanggal } = req.body;
+
+  grandTotal = (
+    await dbmaria("pembelian")
+      .sum("total as grandTotal")
+      .where("tanggal", tanggal)
+  )[0].grandTotal;
+
+  subquery = await dbmaria("pembelian")
+    .select("faktur")
+    .where("tanggal", tanggal);
+  subquery = JSON.parse(JSON.stringify(subquery)).map((data) => data.faktur);
+
+  results = await dbmaria("item_beli")
+    .select(["namaBarang", "kodeBarang", "hargaBeli", "jumlahBeli"])
+    .sum("jumlahBeli as jumlahBeli")
+    .sum("subtotal as total")
+    .whereIn("faktur", subquery)
+    .groupBy("kodeBarang");
+
+  if (!grandTotal) throw setResponseError(STATUS_CODE_404);
+
+  return { grandTotal, results };
 };
 
 module.exports = ModelPembelian;

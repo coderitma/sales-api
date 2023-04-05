@@ -52,6 +52,14 @@ const setResponseError = (status = 400, message = "") => {
   }
 };
 
+const excelColumnAutoWidth = (worksheets) => {
+  worksheets.columns.forEach((column) => {
+    const lengths = column.values.map((v) => v.toString().length);
+    const maxLength = Math.max(...lengths.filter((v) => typeof v === "number"));
+    column.width = maxLength + 2;
+  });
+};
+
 module.exports = {
   responseError,
   setResponseError,
@@ -60,4 +68,5 @@ module.exports = {
   STATUS_CODE_404,
   pageLimitOffset,
   prevNext,
+  excelColumnAutoWidth,
 };
