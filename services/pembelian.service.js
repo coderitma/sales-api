@@ -1,4 +1,5 @@
 const excel = require("exceljs");
+const { excelColumnAutoWidth } = require("../utils/helpers");
 ServicePembelian = {};
 
 ServicePembelian.fakturToExcel = (pembelian, res) => {
@@ -31,7 +32,6 @@ ServicePembelian.fakturToExcel = (pembelian, res) => {
     if (isHeader) {
       ws.getRow(row).style.alignment = alignment;
       ws.getRow(row).font = { family: 4, size: 10, bold: true };
-      ws.getRow(row).width = 60;
       isHeader = false;
       ws.getRow(row).values = Object.keys(itemArrayObject).map((value) => {
         if (value instanceof Date) {
@@ -56,12 +56,45 @@ ServicePembelian.fakturToExcel = (pembelian, res) => {
   ws.getCell(`E${row}`).value = pembelian.total;
 
   ws.columns.forEach((column) => {
-    console.log(column.values);
     const lengths = column.values.map((v) => v.toString().length);
     const maxLength = Math.max(...lengths.filter((v) => typeof v === "number"));
     column.width = maxLength + 2;
   });
 
+  return wb.xlsx.write(res);
+};
+
+ServicePembelian.printReportPeriodExcel = (dataReport, res) => {
+  const { period, grandTotal, results } = dataReport;
+  let alignment = {
+    vertical: "middle",
+    horizontal: "center",
+  };
+
+  const wb = new excel.Workbook();
+  const ws = wb.addWorksheet(`${period.fromTanggal}-${period.toTanggal}`);
+
+  ws.columns = [
+    { header: "NAMA BARANG", key: "NB", bold: true },
+    { header: "KODE BARANG", key: "KB", bold: true },
+    { header: "HARGA BELI", key: "HB", bold: true },
+    { header: "JUMLAH BELI", key: "JB", bold: true },
+    { header: "SUBTOTAL", key: "ST", bold: true },
+  ];
+
+  "A1 B1 C1 D1 E1".split(" ").map((cell) => {
+    ws.getCell(cell).font = { family: 4, size: 10, bold: true };
+  });
+
+  for (const item of results) {
+    let itemArrayObject = JSON.parse(JSON.stringify(item));
+    itemArrayObject = Object.values(itemArrayObject);
+
+    console.log(itemArrayObject);
+    ws.addRow(itemArrayObject);
+  }
+
+  excelColumnAutoWidth(ws);
   return wb.xlsx.write(res);
 };
 

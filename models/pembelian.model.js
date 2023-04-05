@@ -121,13 +121,13 @@ ModelPembelian.pullByPeriod = async (req) => {
   results = await dbmaria("item_beli")
     .select(["namaBarang", "kodeBarang", "hargaBeli", "jumlahBeli"])
     .sum("jumlahBeli as jumlahBeli")
-    .sum("subtotal as total")
+    .sum("subtotal as subtotal")
     .whereIn("faktur", subquery)
     .groupBy("kodeBarang");
 
   if (!grandTotal) throw setResponseError(STATUS_CODE_404);
 
-  return { grandTotal, results };
+  return { period: { fromTanggal, toTanggal }, grandTotal, results };
 };
 
 ModelPembelian.pullByDate = async (req) => {

@@ -57,11 +57,21 @@ router.post("/:faktur/print/excel", [authentication], async (req, res) => {
   }
 });
 
-router.post("/report/excel", [authentication], async (req, res) => {
+router.post("/report/period/excel", [authentication], async (req, res) => {
   try {
-    // TODO: add ModelPembelian.pullByPeriod(req);
-    // TODO: ServicePembelian.convertToExcel(result);
-    return res.status(200).json(await ModelPembelian.pullByDate(req));
+    let dataReport = await ModelPembelian.pullByPeriod(req);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=REPORT_PEMBELIAN_${new Date().getTime()}.xlsx`
+    );
+
+    return ServicePembelian.printReportPeriodExcel(dataReport, res).then(() => {
+      res.status(200).end();
+    });
   } catch (error) {
     return responseError(res, error);
   }
