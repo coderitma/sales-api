@@ -24,17 +24,17 @@ ModelBarang.list = async (req) => {
   let qbCount = dbmaria(TABLE);
 
   if (kodeBarang) {
-    qb = qb.whereLike("kodeBarang", `%${kodeBarang}%`);
-    qbCount = qbCount.whereLike("kodeBarang", `%${kodeBarang}%`);
+    qb = qb.whereILike("kodeBarang", `%${kodeBarang}%`);
+    qbCount = qbCount.whereILike("kodeBarang", `%${kodeBarang}%`);
   }
 
   if (namaBarang) {
-    qb = qb.whereLike("namaBarang", `%${namaBarang}%`);
-    qbCount = qbCount.whereLike("namaBarang", `%${namaBarang}%`);
+    qb = qb.whereILike("namaBarang", `%${namaBarang}%`);
+    qbCount = qbCount.whereILike("namaBarang", `%${namaBarang}%`);
   }
 
   let totalData = await qbCount.count("* as count").first();
-  results = await qb.limit(limit).offset(offset);
+  results = await qb.orderBy("kodeBarang", "desc").limit(limit).offset(offset);
 
   let { prev, next } = prevNext(totalData.count, limit, page);
 

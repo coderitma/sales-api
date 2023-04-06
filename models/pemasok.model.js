@@ -21,13 +21,13 @@ ModelPemasok.list = async (req) => {
   let qbCount = dbmaria(TABLE);
 
   if (kodePemasok) {
-    qb = qb.whereLike("kodePemasok", `%${kodePemasok}%`);
-    qbCount = qbCount.whereLike("kodePemasok", `%${kodePemasok}%`);
+    qb = qb.whereILike("kodePemasok", `%${kodePemasok}%`);
+    qbCount = qbCount.whereILike("kodePemasok", `%${kodePemasok}%`);
   }
 
   if (namaPemasok) {
-    qb = qb.whereLike("namaPemasok", `%${namaPemasok}%`);
-    qbCount = qbCount.whereLike("namaPemasok", `%${namaPemasok}%`);
+    qb = qb.whereILike("namaPemasok", `%${namaPemasok}%`);
+    qbCount = qbCount.whereILike("namaPemasok", `%${namaPemasok}%`);
   }
 
   let totalData = await qbCount.count("* as count").first();
