@@ -31,7 +31,7 @@ ModelPemasok.list = async (req) => {
   }
 
   let totalData = await qbCount.count("* as count").first();
-  results = await qb.limit(limit).offset(offset);
+  results = await qb.orderBy("kodePemasok", "desc").limit(limit).offset(offset);
 
   const { prev, next } = prevNext(totalData.count, limit, page);
 
