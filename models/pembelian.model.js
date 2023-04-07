@@ -56,7 +56,7 @@ ModelPembelian.create = async (req) => {
       await dbmaria("barang")
         .transacting(trx)
         .where("kodeBarang", item[i].kodeBarang)
-        .update("jumlahBarang", data[0].jumlahBarang - item[i].jumlahBeli);
+        .update("jumlahBarang", data[0].jumlahBarang + item[i].jumlahBeli);
     }
   });
 

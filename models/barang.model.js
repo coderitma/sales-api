@@ -58,6 +58,11 @@ ModelBarang.get = async (req) => {
   throw setResponseError(STATUS_CODE_404);
 };
 
+ModelBarang.getFromKodeBarang = async (kodeBarang) => {
+  let barang = await dbmaria(TABLE).where("kodeBarang", kodeBarang);
+  if (barang && barang.length > 0) return barang[0];
+};
+
 ModelBarang.edit = async (req) => {
   const { body } = req;
   const { kodeBarang } = req.params;

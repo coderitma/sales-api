@@ -3,9 +3,11 @@ const router = express.Router();
 const authentication = require("../middlewares/auth.middleware");
 const ModelBarang = require("../models/barang.model");
 const { responseError } = require("../utils/helpers");
+const BarangValidator = require("../validators/barang.validator");
 
 router.post("/", [authentication], async (req, res) => {
   try {
+    await BarangValidator.create(req);
     return res.status(201).json(await ModelBarang.create(req));
   } catch (error) {
     return responseError(res, error);
@@ -34,6 +36,7 @@ router.get("/:kodeBarang", [authentication], async (req, res) => {
 
 router.put("/:kodeBarang", [authentication], async (req, res) => {
   try {
+    await BarangValidator.edit(req);
     return res.status(200).json(await ModelBarang.edit(req));
   } catch (error) {
     return responseError(res, error);
