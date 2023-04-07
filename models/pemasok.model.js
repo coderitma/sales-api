@@ -70,6 +70,14 @@ ModelPemasok.getFromPembelian = async (pembelian) => {
   throw setResponseError(STATUS_CODE_404);
 };
 
+ModelPemasok.getFromKodePemasok = async (kodePemasok, throwback) => {
+  let pemasok = (await dbmaria(TABLE).where("kodePemasok", kodePemasok))[0];
+
+  if (throwback && !pemasok) throw setResponseError(STATUS_CODE_404);
+
+  return pemasok;
+};
+
 ModelPemasok.edit = async (req) => {
   const { kodePemasok } = req.params;
   await ModelPemasok.get(req);

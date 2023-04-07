@@ -6,20 +6,12 @@ const {
 } = require("../utils/helpers");
 const BarangValidator = {};
 
-const validateKodeBarang = async (kodeBarang, revert) => {
+const validateKodeBarang = async (kodeBarang) => {
   if (!kodeBarang)
     throw setResponseError(STATUS_CODE_400, "Kode barang harus tersedia");
 
-  if (revert) {
-    if (!(await ModelBarang.getFromKodeBarang(kodeBarang)))
-      throw setResponseError(STATUS_CODE_404, "Kode barang tidak tersedia");
-  } else {
-    if (await ModelBarang.getFromKodeBarang(kodeBarang))
-      throw setResponseError(
-        STATUS_CODE_400,
-        "Kode barang sudah pernah dibuat"
-      );
-  }
+  if (await ModelBarang.getFromKodeBarang(kodeBarang))
+    throw setResponseError(STATUS_CODE_400, "Kode barang sudah pernah dibuat");
 };
 
 const validateNamaBarang = (namaBarang) => {
@@ -77,7 +69,7 @@ BarangValidator.edit = async (req) => {
   const { body } = req;
   const { kodeBarang } = req.params;
 
-  await validateKodeBarang(kodeBarang, true);
+  await validateKodeBarang(kodeBarang);
   validateNamaBarang(body.namaBarang);
   validateHargaBeli(body.hargaBeli);
   validateHargaJual(body.hargaJual);
