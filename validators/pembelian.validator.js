@@ -1,71 +1,185 @@
 const ModelBarang = require("../models/barang.model");
 const ModelPemasok = require("../models/pemasok.model");
 const ModelPembelian = require("../models/pembelian.model");
+const { setResponseError, STATUS_CODE_400 } = require("../utils/helpers");
+const BarangValidator = require("./barang.validator");
+const PemasokValidator = require("./pemasok.validator");
 
 const PembelianValidator = {};
 
-PembelianValidator.create = async (req, res) => {
-  let body = req.body;
-  let errors = {
-    message: "",
-    status: 400,
-  };
-
-  let isError = false;
-
-  if (!body) {
-    throw { message: "Data tidak valid.", status: 400 };
+const validateFaktur = async (faktur, foredit) => {
+  if (!faktur) {
+    throw setResponseError(STATUS_CODE_400, "Faktur harus tersedia");
   }
 
-  // check faktur kosong atau tidak
-  if (!body.faktur) {
-    throw { message: "Nomor faktur tidak boleh kosong.", status: 400 };
+  if (!foredit && (await ModelPembelian.getFromFaktur(faktur))) {
+    throw setResponseError(STATUS_CODE_400, "Faktur sudah pernah dibuat");
   }
 
-  // check faktur kosong atau tidak
-  if (!body.tanggal) {
-    throw { message: "Tanggal tidak boleh kosong.", status: 400 };
+  if (foredit && !(await ModelPembelian.getFromFaktur(faktur))) {
+    throw setResponseError(STATUS_CODE_400, "Faktur tidak tersedia");
+  }
+};
+
+const validateTanggal = (tanggal) => {
+  if (!tanggal) {
+    throw setResponseError(STATUS_CODE_400, "Tanggal harus terdedia");
+  }
+};
+
+const validateTotal = (total) => {
+  if (!total) {
+    throw setResponseError(STATUS_CODE_400, "Total harus tersedia");
   }
 
-  // check faktur sudah ada atau belum
-  let fakturIsExist = await ModelPembelian.pembelianExist(body.faktur);
-  if (fakturIsExist) {
-    throw { message: "Faktur sudah pernah dibuat sebelumnya.", status: 400 };
+  if (!Number.isInteger(total)) {
+    throw setResponseError(STATUS_CODE_400, "Total harus angka");
   }
 
-  // check pemasok ada
-  if (!body.pemasok.kodePemasok) {
-    throw { message: "Pemasok tidak boleh kosong.", status: 400 };
+  if (total <= 0) {
+    throw setResponseError(STATUS_CODE_400, "Total harus lebih besar dari 0");
+  }
+};
+
+const validateDibayar = (dibayar) => {
+  if (!dibayar) {
+    throw setResponseError(STATUS_CODE_400, "Dibayar harus tersedia");
   }
 
-  // check pemasok ada di database
-  let pemasokIsExist = await ModelPemasok.pemasokExist(
-    body.pemasok.kodePemasok
+  if (!Number.isInteger(dibayar)) {
+    throw setResponseError(STATUS_CODE_400, "Dibayar harus angka");
+  }
+
+  if (dibayar <= 0) {
+    throw setResponseError(STATUS_CODE_400, "Dibayar harus lebih besar dari 0");
+  }
+};
+
+const validateKembali = (kembali) => {
+  if (kembali === null) {
+    throw setResponseError(STATUS_CODE_400, "Kembali harus tersedia");
+  }
+
+  if (!Number.isInteger(kembali)) {
+    throw setResponseError(STATUS_CODE_400, "Kembali harus angka");
+  }
+
+  if (kembali < 0) {
+    throw setResponseError(
+      STATUS_CODE_400,
+      "Kembali harus lebih besar atau sama dengan 0"
+    );
+  }
+};
+
+const validatePemasok = async (pemasok) => {
+  await PemasokValidator.validator.validateKodePemasok(
+    pemasok.kodePemasok,
+    true
   );
-  if (!pemasokIsExist) {
-    throw { message: "Pemasok tidak ada di dalam database.", status: 400 };
+  PemasokValidator.validator.validateNamaPemasok(pemasok.namaPemasok);
+  PemasokValidator.validator.validateAlamatPemasok(pemasok.alamatPemasok);
+  PemasokValidator.validator.validateTeleponPemasok(pemasok.teleponPemasok);
+};
+
+const validateDaftarBarang = async (daftarBarang) => {
+  if (!daftarBarang) {
+    throw setResponseError(STATUS_CODE_400, "Item harus tersedia");
   }
 
-  // check item harus array
-  if (!Array.isArray(body.item)) {
-    throw { message: "Format item tidak valid.", status: 400 };
+  if (!Array.isArray(daftarBarang)) {
+    throw setResponseError(STATUS_CODE_400, "Item harus berupa array");
   }
 
-  // check item harus ada
-  if (body.item.length === 0) {
-    throw { message: "Item tidak boleh kosong.", status: 400 };
+  if (daftarBarang.length === 0) {
+    throw setResponseError(
+      STATUS_CODE_400,
+      "Item minimal harus berisi satu barang"
+    );
   }
 
-  for (const barang of body.item) {
-    let isAvailable = await ModelBarang.barangExist(barang.kodeBarang);
-    if (!isAvailable) {
-      throw {
-        message: `Barang dengan kode ${barang.kodeBarang} tidak tersedia.`,
-        status: 400,
-      };
+  for (const item of daftarBarang) {
+    await BarangValidator.validator.validateKodeBarang(item.kodeBarang, true);
+    BarangValidator.validator.validateNamaBarang(item.namaBarang);
+    BarangValidator.validator.validateHargaBeli(item.hargaBeli);
+    BarangValidator.validator.validateHargaJual(item.hargaJual);
+    BarangValidator.validator.validateJumlahBarang(item.jumlahBarang);
+  }
+};
+
+const validateTotalDibayarKembali = (total, dibayar, kembali, daftarBarang) => {
+  let count = 0;
+  for (const item of daftarBarang) {
+    if (!item.subtotal) {
+      throw setResponseError(STATUS_CODE_400, "Subtotal harus tersedia");
     }
+
+    if (!Number.isInteger(item.subtotal)) {
+      throw setResponseError(STATUS_CODE_400, "Subtotal harus berupa angka");
+    }
+
+    if (item.subtotal <= 0) {
+      throw setResponseError(
+        STATUS_CODE_400,
+        "Subtotal harus lebih besar dari 0"
+      );
+    }
+
+    if (!item.jumlahBeli) {
+      throw setResponseError(STATUS_CODE_400, "Jumlah beli harus tersedia");
+    }
+
+    if (!Number.isInteger(item.jumlahBeli)) {
+      throw setResponseError(STATUS_CODE_400, "Jumlah beli harus berupa angka");
+    }
+
+    if (item.jumlahBeli <= 0) {
+      throw setResponseError(
+        STATUS_CODE_400,
+        "Jumlah beli harus lebih besar dari 0"
+      );
+    }
+
+    if (item.jumlahBeli >= item.jumlahBarang) {
+      throw setResponseError(STATUS_CODE_400, "Stok tidak mecukupi");
+    }
+
+    count = count + item.subtotal;
   }
-  return { errors, isError };
+
+  if (count != total) {
+    throw setResponseError(STATUS_CODE_400, "Total tidak valid");
+  }
+
+  if (dibayar < total) {
+    throw setResponseError(STATUS_CODE_400, "Pembayaran tidak cukup");
+  }
+
+  if (dibayar - total != kembali) {
+    throw setResponseError(
+      STATUS_CODE_400,
+      "Pembayaran dan kembalian tidak valid"
+    );
+  }
+};
+
+PembelianValidator.create = async (req) => {
+  const { body } = req;
+
+  await validateFaktur(body.faktur);
+  validateTanggal(body.tanggal);
+  await validatePemasok(body.pemasok);
+  await validateDaftarBarang(body.item);
+  validateTotal(body.total);
+  validateDibayar(body.dibayar);
+  validateKembali(body.kembali);
+
+  validateTotalDibayarKembali(
+    body.total,
+    body.dibayar,
+    body.kembali,
+    body.item
+  );
 };
 
 module.exports = PembelianValidator;

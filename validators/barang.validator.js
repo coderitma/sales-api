@@ -6,12 +6,15 @@ const {
 } = require("../utils/helpers");
 const BarangValidator = {};
 
-const validateKodeBarang = async (kodeBarang) => {
+const validateKodeBarang = async (kodeBarang, foredit) => {
   if (!kodeBarang)
     throw setResponseError(STATUS_CODE_400, "Kode barang harus tersedia");
 
-  if (await ModelBarang.getFromKodeBarang(kodeBarang))
+  if (!foredit && (await ModelBarang.getFromKodeBarang(kodeBarang)))
     throw setResponseError(STATUS_CODE_400, "Kode barang sudah pernah dibuat");
+
+  if (foredit && !(await ModelBarang.getFromKodeBarang(kodeBarang)))
+    throw setResponseError(STATUS_CODE_400, "Kode barang tidak tersedia");
 };
 
 const validateNamaBarang = (namaBarang) => {
@@ -31,7 +34,7 @@ const validateHargaJual = (hargaJual) => {
   if (!Number.isInteger(hargaJual))
     throw setResponseError(STATUS_CODE_400, "Harga jual harus angka");
 
-  if (hargaBeli <= 0)
+  if (hargaJual <= 0)
     throw setResponseError(STATUS_CODE_400, "Harga jual harus lebih dari 0");
 };
 
@@ -69,7 +72,7 @@ BarangValidator.edit = async (req) => {
   const { body } = req;
   const { kodeBarang } = req.params;
 
-  await validateKodeBarang(kodeBarang);
+  await validateKodeBarang(kodeBarang, true);
   validateNamaBarang(body.namaBarang);
   validateHargaBeli(body.hargaBeli);
   validateHargaJual(body.hargaJual);
@@ -77,4 +80,12 @@ BarangValidator.edit = async (req) => {
   validateJumlahBarang(body.jumlahBarang);
 };
 
+BarangValidator.validator = {
+  validateKodeBarang,
+  validateNamaBarang,
+  validateHargaBeli,
+  validateHargaJual,
+  validateJumlahBarang,
+  validateHargaJualAndHargaBeli,
+};
 module.exports = BarangValidator;

@@ -3,12 +3,15 @@ const { setResponseError, STATUS_CODE_400 } = require("../utils/helpers");
 
 const PemasokValidator = {};
 
-const validateKodePemasok = async (kodePemasok) => {
+const validateKodePemasok = async (kodePemasok, foredit) => {
   if (!kodePemasok)
     throw setResponseError(STATUS_CODE_400, "Kode pemasok harus tersedia");
 
-  if (await ModelPemasok.getFromKodePemasok(kodePemasok)) {
-    throw setResponseError(STATUS_CODE_400, "Kode barang sudah pernah dibuat");
+  if (!foredit && (await ModelPemasok.getFromKodePemasok(kodePemasok))) {
+    throw setResponseError(STATUS_CODE_400, "Kode pemasok sudah pernah dibuat");
+  }
+  if (foredit && !(await ModelPemasok.getFromKodePemasok(kodePemasok))) {
+    throw setResponseError(STATUS_CODE_400, "Kode pemasok tidak tersedia");
   }
 };
 
@@ -75,10 +78,17 @@ PemasokValidator.edit = async (req) => {
   const { body } = req;
   const { kodePemasok } = req.params;
 
-  await validateKodePemasok(kodePemasok);
+  await validateKodePemasok(kodePemasok, true);
   validateNamaPemasok(body.namaPemasok);
   validateAlamatPemasok(body.alamatPemasok);
   validateTeleponPemasok(body.teleponPemasok);
+};
+
+PemasokValidator.validator = {
+  validateAlamatPemasok,
+  validateKodePemasok,
+  validateNamaPemasok,
+  validateTeleponPemasok,
 };
 
 module.exports = PemasokValidator;

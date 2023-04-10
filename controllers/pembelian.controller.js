@@ -4,9 +4,11 @@ const authentication = require("../middlewares/auth.middleware");
 const ModelPembelian = require("../models/pembelian.model");
 const ServicePembelian = require("../services/pembelian.service");
 const { responseError } = require("../utils/helpers");
+const PembelianValidator = require("../validators/pembelian.validator");
 
 router.post("/", [authentication], async (req, res) => {
   try {
+    await PembelianValidator.create(req);
     return res.status(201).json(await ModelPembelian.create(req));
   } catch (error) {
     return responseError(res, error);

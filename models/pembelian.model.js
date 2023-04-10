@@ -81,11 +81,20 @@ ModelPembelian.list = async (req) => {
   }
 
   let totalData = await qbCount.count("* as count").first();
-  results = await qb.limit(limit).offset(offset);
+  results = await qb.orderBy("tanggal", "desc").limit(limit).offset(offset);
   let { prev, next } = prevNext(totalData.count, limit, page);
-
   return {
-    pagination: { page, limit, next, prev },
+    pagination: {
+      page,
+      limit,
+      next,
+      prev,
+      offset,
+      numberOfPage: Math.ceil(totalData.count / limit),
+      from: page * limit,
+      to: Math.min((page + 1) * limit, totalData.count),
+      total: totalData.count,
+    },
     results,
   };
 };
@@ -96,12 +105,22 @@ ModelPembelian.get = async (req) => {
 
   if (!pembelian) throw setResponseError(STATUS_CODE_404);
 
-  let pemasok = (await ModelPemasok.getFromPembelian(pembelian))[0];
+  let pemasok = await ModelPemasok.getFromPembelian(pembelian);
   let item = await dbmaria("item_beli")
     .select("kodeBarang", "namaBarang", "hargaBeli", "jumlahBeli", "subtotal")
     .where("faktur", pembelian.faktur);
 
   return { ...pembelian, pemasok, item };
+};
+
+ModelPembelian.getFromFaktur = async (faktur, throwback) => {
+  let pembelian = (await dbmaria("pembelian").where("faktur", faktur))[0];
+
+  if (throwback && !pembelian) {
+    throw setResponseError(STATUS_CODE_404);
+  }
+
+  return pembelian;
 };
 
 ModelPembelian.pullByPeriod = async (req) => {
