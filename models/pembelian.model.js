@@ -40,6 +40,8 @@ ModelPembelian.create = async (req) => {
     await dbmaria(TABLE).transacting(trx).insert({
       faktur: pembelian.faktur,
       tanggal: pembelian.tanggal,
+      dibayar: pembelian.dibayar,
+      kembali: pembelian.kembali,
       total: total,
       kodePemasok: pemasok.kodePemasok,
     });
