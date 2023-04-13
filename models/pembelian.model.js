@@ -85,6 +85,7 @@ ModelPembelian.list = async (req) => {
   let totalData = await qbCount.count("* as count").first();
   results = await qb.orderBy("tanggal", "desc").limit(limit).offset(offset);
   let { prev, next } = prevNext(totalData.count, limit, page);
+
   return {
     pagination: {
       page,

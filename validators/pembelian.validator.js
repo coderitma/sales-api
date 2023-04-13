@@ -140,9 +140,9 @@ const validateTotalDibayarKembali = (total, dibayar, kembali, daftarBarang) => {
       );
     }
 
-    if (item.jumlahBeli >= item.jumlahBarang) {
-      throw setResponseError(STATUS_CODE_400, "Stok tidak mecukupi");
-    }
+    // if (item.jumlahBeli >= item.jumlahBarang) {
+    //   throw setResponseError(STATUS_CODE_400, "Stok tidak mecukupi");
+    // }
 
     count = count + item.subtotal;
   }

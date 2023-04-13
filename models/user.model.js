@@ -21,7 +21,8 @@ ModelUser.get = async (req, noCheck) => {
   const { email } = req.body;
   let user = (await dbmaria("user").where("email", email))[0];
 
-  if (!user && !noCheck) throw setResponseError(STATUS_CODE_404);
+  if (!user && !noCheck)
+    throw setResponseError(STATUS_CODE_401, "User tidak tersedia");
 
   return user;
 };
@@ -30,7 +31,7 @@ ModelUser.checkPasswordAndGetUser = async (req) => {
   let { password } = req.body;
   let user = await ModelUser.get(req);
   if (!(await bcrypt.compare(password, user.password)))
-    throw setResponseError(STATUS_CODE_401);
+    throw setResponseError(STATUS_CODE_401, "Password tidak tepat");
 
   return user;
 };
