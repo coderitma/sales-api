@@ -127,7 +127,7 @@ ModelPembelian.getFromFaktur = async (faktur, throwback) => {
 };
 
 ModelPembelian.pullByPeriod = async (req) => {
-  let { fromTanggal, toTanggal } = req.body;
+  let { fromTanggal, toTanggal, kodeBarang } = req.body;
 
   grandTotal = (
     await dbmaria("pembelian")
@@ -145,6 +145,7 @@ ModelPembelian.pullByPeriod = async (req) => {
     .sum("jumlahBeli as jumlahBeli")
     .sum("subtotal as subtotal")
     .whereIn("faktur", subquery)
+    .andWhere({ kodeBarang })
     .groupBy("kodeBarang");
 
   if (!grandTotal) throw setResponseError(STATUS_CODE_404);
