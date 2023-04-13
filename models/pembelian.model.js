@@ -140,13 +140,22 @@ ModelPembelian.pullByPeriod = async (req) => {
     .whereBetween("tanggal", [fromTanggal, toTanggal]);
   subquery = JSON.parse(JSON.stringify(subquery)).map((data) => data.faktur);
 
-  results = await dbmaria("item_beli")
-    .select(["namaBarang", "kodeBarang", "hargaBeli", "jumlahBeli"])
-    .sum("jumlahBeli as jumlahBeli")
-    .sum("subtotal as subtotal")
-    .whereIn("faktur", subquery)
-    .andWhere({ kodeBarang })
-    .groupBy("kodeBarang");
+  if (kodeBarang) {
+    results = await dbmaria("item_beli")
+      .select(["namaBarang", "kodeBarang", "hargaBeli", "jumlahBeli"])
+      .sum("jumlahBeli as jumlahBeli")
+      .sum("subtotal as subtotal")
+      .whereIn("faktur", subquery)
+      .andWhere({ kodeBarang })
+      .groupBy("kodeBarang");
+  } else {
+    results = await dbmaria("item_beli")
+      .select(["namaBarang", "kodeBarang", "hargaBeli", "jumlahBeli"])
+      .sum("jumlahBeli as jumlahBeli")
+      .sum("subtotal as subtotal")
+      .whereIn("faktur", subquery)
+      .groupBy("kodeBarang");
+  }
 
   if (!grandTotal) throw setResponseError(STATUS_CODE_404);
 
