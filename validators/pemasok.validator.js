@@ -10,6 +10,7 @@ const validateKodePemasok = async (kodePemasok, foredit) => {
   if (!foredit && (await ModelPemasok.getFromKodePemasok(kodePemasok))) {
     throw setResponseError(STATUS_CODE_400, "Kode pemasok sudah pernah dibuat");
   }
+  
   if (foredit && !(await ModelPemasok.getFromKodePemasok(kodePemasok))) {
     throw setResponseError(STATUS_CODE_400, "Kode pemasok tidak tersedia");
   }
